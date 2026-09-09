@@ -83,6 +83,13 @@ export class AdminService {
       updateData.password = await bcrypt.hash(data.password, 10);
     }
 
+    if ((data.role && data.role !== user.role) || data.password) {
+      await this.prisma.refreshSession.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+
     return this.prisma.user.update({
       where: { id },
       data: updateData,

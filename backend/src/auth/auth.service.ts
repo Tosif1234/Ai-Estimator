@@ -218,6 +218,7 @@ export class AuthService {
     const refreshTokenPayload = {
       sub: user.id,
       sid: sessionId,
+      role: user.role,
     };
 
     const refreshToken = await this.jwtService.signAsync(refreshTokenPayload, {
@@ -359,6 +360,7 @@ export class AuthService {
     let payload: {
       sub: string;
       sid: string;
+      role?: string;
     };
 
     try {
@@ -396,6 +398,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    // If role in DB changed since this refresh token was issued, revoke all sessions and force logout
+    if (payload.role && session.user.role !== payload.role) {
+      await this.prisma.refreshSession.updateMany({
+        where: {
+          userId: session.user.id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+      throw new UnauthorizedException('User role has changed. Please log in again.');
+    }
+
     // Revoke old refresh token
     await this.prisma.refreshSession.update({
       where: {
@@ -413,6 +429,7 @@ export class AuthService {
       {
         sub: session.user.id,
         sid: newSessionId,
+        role: session.user.role,
       },
       {
         secret: refreshTokenSecret,

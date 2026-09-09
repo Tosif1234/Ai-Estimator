@@ -82,6 +82,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (storedUser) {
             try {
               parsedUser = JSON.parse(storedUser)
+
+              // If role changed in DB while session was active, force immediate logout!
+              if (parsedUser.role && me.role && parsedUser.role !== me.role) {
+                clearTokens()
+                localStorage.removeItem("user")
+                setUser(null)
+                setToken(null)
+                setSessionExpiredMessage("Your role has changed. Please sign in again.")
+                router.replace("/login?expired=true")
+                setIsLoading(false)
+                return
+              }
+
               parsedUser.id = resolvedId || parsedUser.id
               parsedUser.email = me.email
               parsedUser.name = me.name !== undefined ? me.name : (parsedUser.name || null)
@@ -117,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem("user")
           setUser(null)
           setToken(null)
+          router.replace("/login?expired=true")
         }
       } else {
         clearTokens()
