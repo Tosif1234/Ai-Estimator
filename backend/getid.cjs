@@ -1,1 +1,0 @@
-const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const p = await prisma.project.findFirst({ orderBy: { updatedAt: 'desc' } }); console.log('PROJECT_ID=' + p.id); } main().finally(() => prisma.$disconnect());

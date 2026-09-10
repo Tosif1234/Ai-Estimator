@@ -22,6 +22,7 @@ import { LoginThrottlerService } from './services/login-throttler.service.js';
 
 @Injectable()
 export class AuthService {
+  // Authentication & session security service
   private readonly logger = new Logger(AuthService.name);
   private readonly OTP_EXPIRY_MINUTES = 10;
   private readonly OTP_RESEND_COOLDOWN_MINUTES = 2;

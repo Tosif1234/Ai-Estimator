@@ -1,1 +1,0 @@
-const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const p = await prisma.project.findMany({ include: { requirements: true } }); console.log(JSON.stringify(p.map(x => ({id: x.id, reqs: x.requirements.length})), null, 2)); } main().finally(() => prisma.());
