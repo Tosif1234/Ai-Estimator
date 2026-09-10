@@ -34,6 +34,7 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = React.useState<0 | 1 | 2 | 3>(0)
   const [email, setEmail] = React.useState("")
   const [otp, setOtp] = React.useState("")
+  const [resetToken, setResetToken] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [resendCooldown, setResendCooldown] = React.useState(0)
   const [showPassword, setShowPassword] = React.useState(false)
@@ -94,7 +95,10 @@ export default function ForgotPasswordPage() {
   const onOtpSubmit = async (data: OtpFormValues) => {
     setError(null)
     try {
-      await authApi.verifyResetOtp({ email, otp: data.otp })
+      const res = await authApi.verifyResetOtp({ email, otp: data.otp }) as { resetToken?: string }
+      if (res && res.resetToken) {
+        setResetToken(res.resetToken)
+      }
       setOtp(data.otp)
       setStep(2)
       swalToast.success("Code verified successfully.")
@@ -108,9 +112,10 @@ export default function ForgotPasswordPage() {
   const onPasswordSubmit = async (data: PasswordFormValues) => {
     setError(null)
     try {
-      await authApi.resetPassword({ email, otp, newPassword: data.newPassword })
+      await authApi.resetPassword({ email, resetToken, otp, newPassword: data.newPassword })
       setEmail("")
       setOtp("")
+      setResetToken("")
       setStep(3)
       swalToast.success("Password reset successfully! You can now log in.")
     } catch (err: unknown) {
@@ -305,9 +310,16 @@ export default function ForgotPasswordPage() {
               />
               <button 
                 type="button" 
-                onClick={() => setShowPassword(!showPassword)}
-                className={`${passwordForm.formState.errors.newPassword ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-200'} focus:outline-none ml-2 transition-colors`}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                onMouseDown={(e) => { e.preventDefault(); setShowPassword(true); }}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={(e) => { e.preventDefault(); setShowPassword(true); }}
+                onTouchEnd={() => setShowPassword(false)}
+                onTouchCancel={() => setShowPassword(false)}
+                onContextMenu={(e) => e.preventDefault()}
+                className={`${passwordForm.formState.errors.newPassword ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-200'} focus:outline-none ml-2 transition-colors select-none`}
+                aria-label="Hold to reveal password"
+                title="Hold to reveal password"
               >
                 {showPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
               </button>
@@ -328,6 +340,21 @@ export default function ForgotPasswordPage() {
                 placeholder="Confirm Password"
                 className="flex-1 bg-transparent border-none outline-none text-[15px] font-bold text-gray-800 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 placeholder:font-semibold tracking-[0.2em]"
               />
+              <button 
+                type="button" 
+                onMouseDown={(e) => { e.preventDefault(); setShowPassword(true); }}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={(e) => { e.preventDefault(); setShowPassword(true); }}
+                onTouchEnd={() => setShowPassword(false)}
+                onTouchCancel={() => setShowPassword(false)}
+                onContextMenu={(e) => e.preventDefault()}
+                className={`${passwordForm.formState.errors.confirmPassword ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-200'} focus:outline-none ml-2 transition-colors select-none`}
+                aria-label="Hold to reveal password"
+                title="Hold to reveal password"
+              >
+                {showPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+              </button>
             </div>
 
             <div className="flex items-center justify-between pt-4">

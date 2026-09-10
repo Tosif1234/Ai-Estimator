@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react"
 
-import { User, useAuth } from "@/components/providers/auth-provider"
+import { User, useAuth, getWorkspaceLabel } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { cn, getAvatarUrl } from "@/lib/utils"
 
@@ -35,7 +35,13 @@ function ClientTopNavInner({ user: initialUser }: ClientTopNavProps) {
 
   const [menuOpen, setMenuOpen] = React.useState(false)
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false)
+  const [avatarError, setAvatarError] = React.useState(false)
   const menuRef = React.useRef<HTMLDivElement>(null)
+
+  // Reset avatar error when avatar URL updates
+  React.useEffect(() => {
+    setAvatarError(false)
+  }, [user?.avatarUrl])
 
   // Close account dropdown on outside click
   React.useEffect(() => {
@@ -97,9 +103,9 @@ function ClientTopNavInner({ user: initialUser }: ClientTopNavProps) {
             </span>
           </Link>
 
-          {/* Client Portal badge - hidden on narrow mobile (<640px) to prevent collision */}
+          {/* Portal badge synchronized with actual role */}
           <span className="hidden sm:inline-flex items-center px-2.5 h-[26px] sm:h-[28px] rounded-2xl text-[10px] sm:text-[11px] font-semibold tracking-wide uppercase bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100/90 dark:border-indigo-900/60 shrink-0 whitespace-nowrap">
-            CLIENT PORTAL
+            {user?.role === "ADMIN" ? "ADMIN CONSOLE" : "CLIENT PORTAL"}
           </span>
         </div>
 
@@ -165,12 +171,13 @@ function ClientTopNavInner({ user: initialUser }: ClientTopNavProps) {
               aria-expanded={menuOpen}
             >
               <div className="relative flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-500 text-white text-xs sm:text-[14px] font-bold overflow-hidden shadow-xs ring-1 ring-slate-200/60 dark:ring-slate-700">
-                {resolvedAvatarUrl ? (
+                {resolvedAvatarUrl && !avatarError ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={resolvedAvatarUrl}
                     alt={displayName}
                     className="h-full w-full object-cover"
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
                   <span>{initials}</span>
@@ -181,7 +188,7 @@ function ClientTopNavInner({ user: initialUser }: ClientTopNavProps) {
                   {displayName}
                 </span>
                 <span className="block text-[12px] text-slate-500 dark:text-slate-400 font-normal leading-none mt-0.5 whitespace-nowrap">
-                  Client Workspace
+                  {getWorkspaceLabel(user?.role)}
                 </span>
               </div>
               <ChevronDown className={cn(
@@ -198,7 +205,7 @@ function ClientTopNavInner({ user: initialUser }: ClientTopNavProps) {
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{user?.email}</p>
                   <div className="mt-2">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50">
-                      Client Account
+                      {user?.role === "ADMIN" ? "Admin Account" : "Client Account"}
                     </span>
                   </div>
                 </div>

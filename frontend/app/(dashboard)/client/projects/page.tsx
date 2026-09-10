@@ -27,7 +27,8 @@ import {
   Compass,
   CheckCircle2,
   AlertCircle,
-  Code2
+  Code2,
+  FileSpreadsheet
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -413,97 +414,42 @@ export default function ClientProjectsPage() {
     return { featuredProject: featured, secondaryProjects: others }
   }, [projects])
 
-  const isLandingView = !featuredProject || showWelcomeGuide
+  // Contextual header titles and descriptions for top tabs
+  const headerMeta = React.useMemo(() => {
+    if (filterParam === "needs_action") {
+      return {
+        badge: "Action Required",
+        title: "Action Needed",
+        description: "Review items requiring your attention, answers, or input.",
+      }
+    }
+    if (filterParam === "ready") {
+      return {
+        badge: "Final Deliverables",
+        title: "Estimates & Scope",
+        description: "Completed technical estimates and executive deliverables.",
+      }
+    }
+    return {
+      badge: "Active Portfolio",
+      title: "My Projects",
+      description: "Continue where you left off in your project workspace.",
+    }
+  }, [filterParam])
 
-  return (
-    <div className="space-y-12 sm:space-y-14">
-      
-      {/* 1. TOP SUB-HEADER / HERO BAR (Shown only when in Projects Dashboard View) */}
-      {!isLandingView ? (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            {/* Breadcrumb Label */}
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">
-              <span>CLIENT ESTIMATION WORKSPACE</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-indigo-500" />
-              <span className="text-blue-600 dark:text-indigo-400">Active Portfolio</span>
-            </div>
-
-            <h1 className="text-[24px] sm:text-[28px] lg:text-[30px] font-semibold tracking-tight text-slate-900 dark:text-white leading-[1.2]">
-              My Projects
-            </h1>
-            <p className="mt-1 text-[14px] sm:text-[15px] text-slate-500 dark:text-slate-400 font-normal">
-              Continue where you left off in your project workspace.
-            </p>
-          </div>
-
-          {/* Top Right Actions */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowWelcomeGuide(true)}
-              className="h-10 sm:h-11 px-3.5 sm:px-4 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0e1322] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl shadow-2xs"
-              title="View scoping methodology and 1-click project templates"
-            >
-              <Compass className="mr-2 h-4 w-4 text-blue-600 dark:text-indigo-400" />
-              Scoping Guide
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsScheduleModalOpen(true)}
-              className="h-10 sm:h-11 px-3.5 sm:px-4 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0e1322] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl shadow-2xs"
-            >
-              <Calendar className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
-              Schedule Review
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportSummary}
-              className="h-10 sm:h-11 px-3.5 sm:px-4 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0e1322] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl shadow-2xs"
-            >
-              <Download className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
-              Export Summary
-            </Button>
-
-            <Button
-              onClick={() => handleStartWithArchetype()}
-              size="sm"
-              className="h-10 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-medium bg-blue-600 hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs transition-all"
-            >
-              <Plus className="mr-2 h-4 w-4 stroke-[2.5]" />
-              Start New Project
-            </Button>
-          </div>
+  if (showWelcomeGuide) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+          <button
+            onClick={() => setShowWelcomeGuide(false)}
+            className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-2 transition-colors"
+          >
+            <ArrowRight className="h-4 w-4 rotate-180" />
+            <span>Back to Dashboard</span>
+          </button>
+          <span className="text-xs font-mono text-slate-400 dark:text-slate-500">Scoping Methodology &amp; Templates</span>
         </div>
-      ) : (
-        featuredProject && (
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-            <button
-              onClick={() => setShowWelcomeGuide(false)}
-              className="text-sm font-semibold text-blue-600 dark:text-indigo-400 hover:text-blue-700 dark:hover:text-indigo-300 flex items-center gap-2 transition-colors"
-            >
-              <ArrowRight className="h-4 w-4 rotate-180" />
-              <span>Back to My Projects Dashboard</span>
-            </button>
-            <span className="text-xs font-mono text-slate-400 dark:text-slate-500">Scoping Methodology &amp; Templates</span>
-          </div>
-        )
-      )}
-
-      {isLoading ? (
-        <div className="space-y-8">
-          <div className="h-96 animate-pulse rounded-3xl bg-white dark:bg-[#0e1322] border border-slate-200 dark:border-slate-800" />
-          <div className="grid gap-7 sm:grid-cols-2">
-            <div className="h-56 animate-pulse rounded-3xl bg-white dark:bg-[#0e1322] border border-slate-200 dark:border-slate-800" />
-            <div className="h-56 animate-pulse rounded-3xl bg-white dark:bg-[#0e1322] border border-slate-200 dark:border-slate-800" />
-          </div>
-        </div>
-      ) : isLandingView || !featuredProject ? (
         <ClientWelcomeLanding
           userName={user?.name || undefined}
           activeProjectsCount={projects?.length || 0}
@@ -513,6 +459,126 @@ export default function ClientProjectsPage() {
           onScheduleReview={() => setIsScheduleModalOpen(true)}
           onContactArchitect={() => setIsMessageLeadOpen(true)}
         />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-8 sm:space-y-10">
+      
+      {/* 1. TOP SUB-HEADER / HERO BAR */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          {/* Breadcrumb Label */}
+          <div className="flex items-center gap-2 text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">
+            <span>CLIENT ESTIMATION WORKSPACE</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-600 dark:bg-indigo-500" />
+            <span className="text-indigo-600 dark:text-indigo-400">{headerMeta.badge}</span>
+          </div>
+
+          <h1 className="text-[24px] sm:text-[28px] lg:text-[30px] font-semibold tracking-tight text-slate-900 dark:text-white leading-[1.2]">
+            {headerMeta.title}
+          </h1>
+          <p className="mt-1 text-[14px] sm:text-[15px] text-slate-500 dark:text-slate-400 font-normal">
+            {headerMeta.description}
+          </p>
+        </div>
+
+        {/* Top Right Actions */}
+        <div className="flex items-center">
+          <Button
+            onClick={() => handleStartWithArchetype()}
+            size="sm"
+            className="h-10 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs transition-all"
+          >
+            <Plus className="mr-2 h-4 w-4 stroke-[2.5]" />
+            Start New Project
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-8">
+          <div className="h-96 animate-pulse rounded-3xl bg-white dark:bg-[#0e1322] border border-slate-200 dark:border-slate-800" />
+          <div className="grid gap-7 sm:grid-cols-2">
+            <div className="h-56 animate-pulse rounded-3xl bg-white dark:bg-[#0e1322] border border-slate-200 dark:border-slate-800" />
+            <div className="h-56 animate-pulse rounded-3xl bg-white dark:bg-[#0e1322] border border-slate-200 dark:border-slate-800" />
+          </div>
+        </div>
+      ) : projects.length === 0 ? (
+        /* POLISHED INTENTIONAL EMPTY STATES */
+        filterParam === "needs_action" ? (
+          /* Empty State 1: Action Needed */
+          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] shadow-xs p-8 sm:p-14 text-center flex flex-col items-center justify-center my-4 transition-colors">
+            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100/90 dark:border-emerald-900/60 text-emerald-600 dark:text-emerald-400 mb-5 shadow-2xs">
+              <CheckCircle2 className="h-8 w-8 sm:h-10 sm:w-10 stroke-[2]" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              You&apos;re All Caught Up
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md font-normal leading-relaxed">
+              You don&apos;t have any pending actions right now.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                asChild
+                variant="outline"
+                className="h-11 px-5 text-sm font-semibold text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151b2c] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl"
+              >
+                <Link href="/client/projects">
+                  <FolderKanban className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                  View All Projects
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ) : filterParam === "ready" ? (
+          /* Empty State 2: Estimates & Scope */
+          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] shadow-xs p-8 sm:p-14 text-center flex flex-col items-center justify-center my-4 transition-colors">
+            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100/90 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 mb-5 shadow-2xs">
+              <FileSpreadsheet className="h-8 w-8 sm:h-10 sm:w-10 stroke-[2]" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              No Estimates Yet
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md font-normal leading-relaxed">
+              Create a project and complete the workflow to generate your first estimate.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                onClick={() => handleStartWithArchetype()}
+                className="h-11 sm:h-12 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 group"
+              >
+                <Plus className="h-4 w-4 stroke-[3] group-hover:rotate-90 transition-transform duration-200" />
+                <span>Create New Project</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* Empty State 3: My Projects */
+          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] shadow-xs p-8 sm:p-14 text-center flex flex-col items-center justify-center my-4 transition-colors">
+            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100/90 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 mb-5 shadow-2xs">
+              <FolderKanban className="h-8 w-8 sm:h-10 sm:w-10 stroke-[2]" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              No Projects Yet
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md font-normal leading-relaxed">
+              Create your first project to start analyzing requirements and generating estimates.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                onClick={() => handleStartWithArchetype()}
+                className="h-11 sm:h-12 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 group"
+              >
+                <Plus className="h-4 w-4 stroke-[3] group-hover:rotate-90 transition-transform duration-200" />
+                <span>Create New Project</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+              </Button>
+            </div>
+          </div>
+        )
       ) : (
         <div className="space-y-14">
 
@@ -1014,39 +1080,39 @@ export default function ClientProjectsPage() {
           </div>
 
           {/* 4. BOTTOM BANNER */}
-          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div className="flex items-start gap-4">
+          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] p-5 sm:p-7 md:p-8 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div className="flex items-start gap-3.5 sm:gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-indigo-950/60 text-blue-600 dark:text-indigo-400 border border-blue-100 dark:border-indigo-800/50">
                 <Headphones className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-[17px] sm:text-[18px] font-semibold text-slate-900 dark:text-white">
+                <h3 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white leading-[1.25]">
                   Have questions about your project estimates?
                 </h3>
-                <p className="text-[13px] sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 sm:mt-0.5 font-normal leading-relaxed">
                   Our technical solutions team is available for direct 1-on-1 walkthroughs and custom SLA consultations.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsMessageLeadOpen(true)}
-                className="h-10 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151b2c] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl"
+                className="w-full sm:w-auto justify-center h-10 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#151b2c] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl"
               >
-                <Compass className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
-                Contact Architect
+                <Compass className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" />
+                <span>Contact Architect</span>
               </Button>
 
               <Button
                 size="sm"
                 onClick={() => setIsScheduleModalOpen(true)}
-                className="h-10 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-medium bg-blue-600 hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs"
+                className="w-full sm:w-auto justify-center h-10 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-medium bg-blue-600 hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs whitespace-nowrap"
               >
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule 15-min Review
+                <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                <span>Schedule 15-min Review</span>
               </Button>
             </div>
           </div>

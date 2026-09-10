@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useAuth, User } from "@/components/providers/auth-provider"
+import { useAuth, User, getWorkspaceLabel } from "@/components/providers/auth-provider"
 import { apiClient } from "@/lib/api/apiClient"
 import { getAvatarUrl, getInitials, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -206,7 +206,7 @@ export function ProfileForm() {
         </div>
         <div className="inline-flex items-center gap-2 self-start sm:self-auto px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>{user.role === "ADMIN" ? "Administrator Account" : "Client Workspace"}</span>
+          <span>{getWorkspaceLabel(user.role)}</span>
         </div>
       </div>
 
@@ -236,7 +236,7 @@ export function ProfileForm() {
                 <Label className="text-[13px] font-medium text-foreground block mb-2">
                   Profile Photo
                 </Label>
-                <div className="flex flex-row items-center gap-4 sm:gap-5 p-3.5 rounded-xl border border-border/70 bg-muted/20">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 p-3.5 rounded-xl border border-border/70 bg-muted/20">
                   {/* Avatar Frame with Online Dot */}
                   <div className="relative flex h-20 w-20 shrink-0">
                     <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground text-2xl font-bold shadow-md overflow-hidden ring-4 ring-card">
@@ -404,7 +404,7 @@ export function ProfileForm() {
                       Account Role
                     </p>
                     <p className="text-sm font-medium text-foreground mt-0.5">
-                      {user.role === "ADMIN" ? "Administrator" : "Client Workspace"}
+                      {getWorkspaceLabel(user.role)}
                     </p>
                   </div>
                 </div>

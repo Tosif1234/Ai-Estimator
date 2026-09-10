@@ -14,6 +14,24 @@ import {
 
 export type Role = "ADMIN" | "CLIENT"
 
+export function getWorkspaceLabel(role?: Role | null): string {
+  if (role === "ADMIN") return "Admin Workspace"
+  return "Client Workspace"
+}
+
+export function decodeJwtRole(token: string | null): Role | null {
+  if (!token) return null
+  try {
+    const parts = token.split(".")
+    if (parts.length < 2) return null
+    const payloadJson = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+    const payload = JSON.parse(payloadJson)
+    return (payload.role as Role) || null
+  } catch {
+    return null
+  }
+}
+
 export interface User {
   id: string
   email: string
@@ -53,10 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribeFailure = onAuthFailure((reason) => {
       clearTokens()
       localStorage.removeItem("user")
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("session_expired_reason", reason)
+      }
       setToken(null)
       setUser(null)
       setSessionExpiredMessage(reason)
-      router.replace("/login?expired=true")
+      const reasonParam = reason.toLowerCase().includes("role") ? "&reason=role_changed" : ""
+      router.replace(`/login?expired=true${reasonParam}`)
     })
 
     // 2. Initialize and validate authentication
@@ -77,60 +99,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             createdAt?: string | null
           }
           const resolvedId = me.userId || me.id || ""
+          const tokenRole = decodeJwtRole(storedAccessToken)
 
-          let parsedUser: User
+          let parsedUser: User | null = null
           if (storedUser) {
             try {
               parsedUser = JSON.parse(storedUser)
-
-              // If role changed in DB while session was active, force immediate logout!
-              if (parsedUser.role && me.role && parsedUser.role !== me.role) {
-                clearTokens()
-                localStorage.removeItem("user")
-                setUser(null)
-                setToken(null)
-                setSessionExpiredMessage("Your role has changed. Please sign in again.")
-                router.replace("/login?expired=true")
-                setIsLoading(false)
-                return
-              }
-
-              parsedUser.id = resolvedId || parsedUser.id
-              parsedUser.email = me.email
-              parsedUser.name = me.name !== undefined ? me.name : (parsedUser.name || null)
-              parsedUser.role = me.role
-              parsedUser.avatarUrl = me.avatarUrl !== undefined ? me.avatarUrl : (parsedUser.avatarUrl || null)
-              parsedUser.createdAt = me.createdAt !== undefined ? me.createdAt : (parsedUser.createdAt || null)
             } catch {
-              parsedUser = {
-                id: resolvedId,
-                email: me.email,
-                name: me.name || null,
-                role: me.role,
-                avatarUrl: me.avatarUrl || null,
-                createdAt: me.createdAt || null,
-              }
-            }
-          } else {
-            parsedUser = {
-              id: resolvedId,
-              email: me.email,
-              name: me.name || null,
-              role: me.role,
-              avatarUrl: me.avatarUrl || null,
-              createdAt: me.createdAt || null,
+              parsedUser = null
             }
           }
 
-          localStorage.setItem("user", JSON.stringify(parsedUser))
-          setUser(parsedUser)
+          const previousRole = parsedUser?.role || tokenRole
+
+          // If role changed in DB while session was active, force immediate logout!
+          if (previousRole && me.role && previousRole !== me.role) {
+            const refreshToken = getRefreshToken()
+            if (refreshToken) {
+              const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+              fetch(`${baseUrl}/auth/logout`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refreshToken }),
+                keepalive: true,
+              }).catch(() => {})
+            }
+            clearTokens()
+            localStorage.removeItem("user")
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("session_expired_reason", "Your account permissions have changed. Please sign in again.")
+            }
+            setUser(null)
+            setToken(null)
+            setSessionExpiredMessage("Your account permissions have changed. Please sign in again.")
+            router.replace("/login?expired=true&reason=role_changed")
+            setIsLoading(false)
+            return
+          }
+
+          const authenticatedUser: User = {
+            id: resolvedId,
+            email: me.email,
+            name: me.name !== undefined ? me.name : (parsedUser?.name || null),
+            role: me.role,
+            avatarUrl: me.avatarUrl !== undefined ? me.avatarUrl : (parsedUser?.avatarUrl || null),
+            createdAt: me.createdAt !== undefined ? me.createdAt : (parsedUser?.createdAt || null),
+          }
+
+          localStorage.setItem("user", JSON.stringify(authenticatedUser))
+          setUser(authenticatedUser)
           setToken(getAccessToken())
-        } catch {
+        } catch (err: unknown) {
           clearTokens()
           localStorage.removeItem("user")
           setUser(null)
           setToken(null)
-          router.replace("/login?expired=true")
+          const isRoleChange = err instanceof Error && err.message.toLowerCase().includes("role")
+          if (isRoleChange) {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("session_expired_reason", "Your role has changed. Please sign in again.")
+            }
+            setSessionExpiredMessage("Your role has changed. Please sign in again.")
+            router.replace("/login?expired=true&reason=role_changed")
+          } else {
+            router.replace("/login?expired=true")
+          }
         }
       } else {
         clearTokens()
@@ -175,7 +208,148 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, pathname, router])
 
+  // Session monitoring refs to prevent race conditions, memory leaks, and redundant calls
+  const isValidatingRef = React.useRef(false)
+  const lastValidatedRef = React.useRef(0)
+  const isLoggingOutRef = React.useRef(false)
+  const userRef = React.useRef<User | null>(user)
+
+  React.useEffect(() => {
+    userRef.current = user
+  }, [user])
+
+  const validateSession = React.useCallback(async () => {
+    const currentUser = userRef.current
+    const currentToken = getAccessToken()
+
+    if (!currentUser || !currentToken || isLoggingOutRef.current) {
+      return
+    }
+
+    const now = Date.now()
+    // Throttle checks: ensure at least 3 seconds between consecutive triggers
+    if (now - lastValidatedRef.current < 3000) {
+      return
+    }
+
+    if (isValidatingRef.current) {
+      return
+    }
+
+    isValidatingRef.current = true
+    lastValidatedRef.current = now
+
+    try {
+      const me = await apiClient.get("/auth/me") as {
+        userId?: string
+        id?: string
+        email: string
+        role: Role
+        name?: string
+        avatarUrl?: string | null
+        createdAt?: string | null
+      }
+
+      // Detect role mismatch immediately
+      if (currentUser.role && me.role && currentUser.role !== me.role) {
+        isLoggingOutRef.current = true
+        const refreshToken = getRefreshToken()
+        if (refreshToken) {
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+          fetch(`${baseUrl}/auth/logout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+            keepalive: true,
+          }).catch(() => {})
+        }
+        clearTokens()
+        localStorage.removeItem("user")
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("session_expired_reason", "Your account permissions have changed. Please sign in again.")
+        }
+        setUser(null)
+        setToken(null)
+        setSessionExpiredMessage("Your account permissions have changed. Please sign in again.")
+        router.replace("/login?expired=true&reason=role_changed")
+        return
+      }
+
+      // Seamlessly sync profile details (e.g. name or avatarUrl updated elsewhere) without logout
+      if (me.name !== currentUser.name || me.avatarUrl !== currentUser.avatarUrl) {
+        const updatedUser: User = {
+          ...currentUser,
+          name: me.name !== undefined ? me.name : currentUser.name,
+          avatarUrl: me.avatarUrl !== undefined ? me.avatarUrl : currentUser.avatarUrl,
+        }
+        setUser(updatedUser)
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+      }
+    } catch (err: unknown) {
+      const isRoleChange =
+        err instanceof Error &&
+        (err.message.toLowerCase().includes("role") || err.message.toLowerCase().includes("permission"))
+      if (isRoleChange) {
+        isLoggingOutRef.current = true
+        clearTokens()
+        localStorage.removeItem("user")
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("session_expired_reason", "Your account permissions have changed. Please sign in again.")
+        }
+        setUser(null)
+        setToken(null)
+        setSessionExpiredMessage("Your account permissions have changed. Please sign in again.")
+        router.replace("/login?expired=true&reason=role_changed")
+      }
+    } finally {
+      isValidatingRef.current = false
+    }
+  }, [router])
+
+  // Periodic polling (30s) + Focus / Visibility change active session monitoring
+  React.useEffect(() => {
+    if (isLoading || !user || !token) {
+      return
+    }
+
+    const isAuthRoute =
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/signup") ||
+      pathname.startsWith("/forgot-password") ||
+      pathname.startsWith("/reset-password")
+
+    if (isAuthRoute) {
+      return
+    }
+
+    // 1. Single 30-second interval for background polling
+    const intervalId = setInterval(() => {
+      validateSession()
+    }, 30000)
+
+    // 2. Immediate validation on window focus
+    const handleFocus = () => {
+      validateSession()
+    }
+    window.addEventListener("focus", handleFocus)
+
+    // 3. Immediate validation on visibilitychange when returning to tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        validateSession()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener("focus", handleFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [isLoading, user, token, pathname, validateSession])
+
   const login = (accessToken: string, refreshToken: string, newUser: User) => {
+    isLoggingOutRef.current = false
     setTokens({ accessToken, refreshToken })
     localStorage.setItem("user", JSON.stringify(newUser))
     setToken(accessToken)
@@ -185,6 +359,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    isLoggingOutRef.current = true
     const refreshToken = getRefreshToken()
     if (refreshToken) {
       try {
@@ -221,6 +396,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearSessionExpiredMessage = () => {
     setSessionExpiredMessage(null)
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("session_expired_reason")
+    }
   }
 
   return (

@@ -1,5 +1,11 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsController } from './projects.controller.js';
+import { ProjectsService } from './projects.service.js';
+import { RequirementsService } from './requirements/requirements.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { ProjectAccessGuard } from './guards/project-access.guard.js';
 
 describe('ProjectsController', () => {
   let controller: ProjectsController;
@@ -7,7 +13,17 @@ describe('ProjectsController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProjectsController],
-    }).compile();
+      providers: [
+        { provide: ProjectsService, useValue: {} },
+        { provide: RequirementsService, useValue: {} },
+        { provide: PrismaService, useValue: {} },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(ProjectAccessGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ProjectsController>(ProjectsController);
   });

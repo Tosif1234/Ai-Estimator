@@ -25,8 +25,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false)
 
   // Derived expired notice without triggering cascading render effect
+  const [persistedNotice] = React.useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+    const searchParams = new URLSearchParams(window.location.search)
+    if (searchParams.get("reason") === "role_changed") {
+      return "Your account permissions have changed. Please sign in again."
+    }
+    return sessionStorage.getItem("session_expired_reason")
+  })
+
   const isQueryExpired = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("expired") === "true"
-  const expiredNotice = !hasDismissedNotice ? (sessionExpiredMessage || (isQueryExpired ? "Your session has expired. Please sign in again." : null)) : null
+  const expiredNotice = !hasDismissedNotice
+    ? (sessionExpiredMessage || persistedNotice || (isQueryExpired ? "Your session has expired. Please sign in again." : null))
+    : null
 
   const {
     register,
@@ -44,6 +55,9 @@ export default function LoginPage() {
     setError(null)
     setHasDismissedNotice(true)
     clearSessionExpiredMessage()
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("session_expired_reason")
+    }
     try {
       const response = await apiClient.post("/auth/login", data) as {
         accessToken: string
@@ -130,9 +144,16 @@ export default function LoginPage() {
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className={`${errors.password ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-200'} focus:outline-none ml-2 transition-colors`}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              onMouseDown={(e) => { e.preventDefault(); setShowPassword(true); }}
+              onMouseUp={() => setShowPassword(false)}
+              onMouseLeave={() => setShowPassword(false)}
+              onTouchStart={(e) => { e.preventDefault(); setShowPassword(true); }}
+              onTouchEnd={() => setShowPassword(false)}
+              onTouchCancel={() => setShowPassword(false)}
+              onContextMenu={(e) => e.preventDefault()}
+              className={`${errors.password ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-200'} focus:outline-none ml-2 transition-colors select-none`}
+              aria-label="Hold to reveal password"
+              title="Hold to reveal password"
             >
               {showPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
             </button>

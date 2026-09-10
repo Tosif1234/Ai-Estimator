@@ -28,6 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     sub: string;
     email: string;
     role: Role;
+    tokenVersion?: number;
   }) {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid access token');
@@ -35,11 +36,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, tokenVersion: true },
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    if (
+      payload.tokenVersion !== undefined &&
+      user.tokenVersion !== payload.tokenVersion
+    ) {
+      throw new UnauthorizedException(
+        'Session expired or invalidated. Please log in again.',
+      );
     }
 
     if (user.role !== payload.role) {
@@ -47,7 +57,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-      throw new UnauthorizedException('User role has changed. Please log in again.');
+      throw new UnauthorizedException(
+        'User role has changed. Please log in again.',
+      );
     }
 
     return {
@@ -55,6 +67,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user.id,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
   }
 }

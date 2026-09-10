@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Mail, Plus, Edit, Trash2, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { AdminPagination } from "@/components/admin/admin-pagination"
+import { PasswordInput } from "@/components/ui/password-input"
 
 interface User {
   id: string
@@ -216,7 +217,7 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Password</Label>
-                    <Input type="password" required minLength={6} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="h-11 text-sm rounded-xl" />
+                    <PasswordInput required minLength={6} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="h-11 text-sm rounded-xl" placeholder="••••••••" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Role</Label>
@@ -246,20 +247,20 @@ export default function AdminUsersPage() {
 
       {/* Search and Sort Controls */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center max-w-md flex-1 relative">
+        <div className="flex items-center max-w-md flex-1 relative w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search by name, email or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-11 text-sm rounded-xl"
+            className="pl-10 h-11 text-sm rounded-xl w-full"
           />
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto">
           <span className="text-xs sm:text-[13px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sort by:</span>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[160px] h-11 text-sm font-medium rounded-xl">
+            <SelectTrigger className="w-[140px] sm:w-[160px] h-11 text-sm font-medium rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -272,7 +273,7 @@ export default function AdminUsersPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-11 px-4 text-sm font-semibold rounded-xl flex items-center gap-2"
+            className="h-11 px-3.5 sm:px-4 text-sm font-semibold rounded-xl flex items-center gap-1.5"
             onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
             title={sortOrder === "asc" ? "Ascending order" : "Descending order"}
           >
@@ -282,53 +283,54 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table Card */}
       <Card className="rounded-2xl border-border/80 shadow-xs overflow-hidden bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs sm:text-[13px] uppercase bg-muted/40 text-muted-foreground border-b border-border/60">
+        {/* DESKTOP TABLE VIEW (Hidden on Mobile < 768px) */}
+        <div className="hidden md:block w-full overflow-hidden">
+          <table className="w-full text-sm text-left table-fixed">
+            <thead className="text-xs uppercase bg-muted/40 text-muted-foreground border-b border-border/60">
               <tr>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[32%] px-5 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("name")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     User
                     {renderSortIndicator("name")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[28%] px-4 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("email")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     Email
                     {renderSortIndicator("email")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[16%] px-4 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("role")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     Role
                     {renderSortIndicator("role")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[14%] px-4 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("createdAt")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     Joined Date
                     {renderSortIndicator("createdAt")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold text-right">Actions</th>
+                <th className="w-[10%] px-5 py-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -350,16 +352,18 @@ export default function AdminUsersPage() {
                   const isSelf = isUserSelf(user)
                   return (
                     <tr key={user.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="px-5 sm:px-6 py-4 font-medium text-foreground">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
+                      <td className="px-5 py-3.5 font-medium text-foreground">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs shrink-0">
                             {user.name ? user.name.slice(0, 2).toUpperCase() : <Users className="h-4 w-4" />}
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate font-semibold text-sm sm:text-[15px]">{user.name || "Unnamed User"}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="truncate font-semibold text-sm block" title={user.name || "Unnamed User"}>
+                                {user.name || "Unnamed User"}
+                              </span>
                               {isSelf && (
-                                <Badge className="text-xs px-2.5 py-0.5 bg-primary/15 hover:bg-primary/20 text-primary font-bold border border-primary/30 tracking-wide rounded-full">
+                                <Badge className="text-[11px] px-2 py-0 bg-primary/15 hover:bg-primary/20 text-primary font-bold border border-primary/30 tracking-wide rounded-full shrink-0">
                                   You
                                 </Badge>
                               )}
@@ -367,59 +371,55 @@ export default function AdminUsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 sm:px-6 py-4 text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="truncate text-sm">{user.email}</span>
+                      <td className="px-4 py-3.5 text-muted-foreground">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate text-sm" title={user.email}>{user.email}</span>
                         </div>
                       </td>
-                      <td className="px-5 sm:px-6 py-4">
+                      <td className="px-4 py-3.5">
                         <Badge
                           variant={user.role === "ADMIN" ? "default" : "secondary"}
-                          className={user.role === "ADMIN" ? "bg-indigo-600 hover:bg-indigo-600 text-white font-medium text-xs px-3 py-1 rounded-full" : "font-normal text-xs px-3 py-1 rounded-full"}
+                          className={user.role === "ADMIN" ? "bg-indigo-600 hover:bg-indigo-600 text-white font-medium text-xs px-2.5 py-0.5 rounded-full" : "font-normal text-xs px-2.5 py-0.5 rounded-full"}
                         >
                           {user.role === "ADMIN" ? "Admin" : "Client"}
                         </Badge>
                       </td>
-                      <td className="px-5 sm:px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                      <td className="px-4 py-3.5 text-xs text-muted-foreground truncate">
                         {new Date(user.createdAt).toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
                         })}
                       </td>
-                      <td className="px-5 sm:px-6 py-4 text-right whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-right">
                         {isSelf ? (
-                          <div className="flex items-center justify-end">
-                            <span 
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-muted/60 px-3 py-1 rounded-xl border border-border/60 select-none"
-                              title="Current account cannot be edited or deleted here"
-                            >
-                              <Shield className="h-3.5 w-3.5 text-primary" />
-                              <span>You (Protected)</span>
-                            </span>
-                          </div>
+                          <span 
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/60 select-none whitespace-nowrap"
+                            title="Current account cannot be edited or deleted here"
+                          >
+                            <Shield className="h-3 w-3 text-primary" />
+                            <span>Protected</span>
+                          </span>
                         ) : (
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+                              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
                               onClick={() => openEdit(user)}
-                              title="Edit User"
+                              title="Edit user"
                             >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit user</span>
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive"
+                              className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
                               onClick={() => confirmDelete(user)}
-                              title="Delete User"
+                              title="Delete user"
                             >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete user</span>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         )}
@@ -430,6 +430,90 @@ export default function AdminUsersPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE CARD LIST VIEW (< 768px) */}
+        <div className="block md:hidden divide-y divide-border">
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
+              <span>Loading users...</span>
+            </div>
+          ) : users?.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              {debouncedSearch.trim() ? "No users match your search query." : "No users found on the platform."}
+            </div>
+          ) : (
+            paginatedUsers.map((user) => {
+              const isSelf = isUserSelf(user)
+              return (
+                <div key={user.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
+                        {user.name ? user.name.slice(0, 2).toUpperCase() : <Users className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="font-semibold text-[15px] text-foreground truncate">
+                            {user.name || "Unnamed User"}
+                          </p>
+                          {isSelf && (
+                            <Badge className="text-[10px] px-2 py-0 bg-primary/15 text-primary font-bold border border-primary/30 rounded-full shrink-0">
+                              You
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!isSelf ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+                          onClick={() => openEdit(user)}
+                          aria-label="Edit user"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10"
+                          onClick={() => confirmDelete(user)}
+                          aria-label="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded-lg border border-border/60">
+                        <Shield className="h-3 w-3 text-primary" />
+                        Protected
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40 gap-2">
+                    <Badge
+                      variant={user.role === "ADMIN" ? "default" : "secondary"}
+                      className={user.role === "ADMIN" ? "bg-indigo-600 text-white font-medium text-xs px-2.5 py-0.5 rounded-full" : "font-normal text-xs px-2.5 py-0.5 rounded-full"}
+                    >
+                      {user.role === "ADMIN" ? "Admin" : "Client"}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground">
+                      Joined {new Date(user.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
 
         {/* Integrated Pagination Controls */}
@@ -460,7 +544,7 @@ export default function AdminUsersPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Password (Leave blank to keep current)</Label>
-                <Input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="h-11 text-sm rounded-xl" />
+                <PasswordInput value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="h-11 text-sm rounded-xl" placeholder="••••••••" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Role</Label>

@@ -751,43 +751,43 @@ export function ClientWelcomeLanding({
         whileInView="visible"
         viewport={{ once: true, margin: "-40px" }}
         variants={fadeInUp}
-        className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] p-7 sm:p-9 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-6 hover:shadow-md transition-shadow duration-300"
+        className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0e1322] p-5 sm:p-7 md:p-9 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-5 sm:gap-6 hover:shadow-md transition-shadow duration-300"
       >
-        <div className="flex items-start gap-4 sm:gap-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-slate-800/80 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-700/60 shadow-2xs">
-            <Headphones className="h-6 w-6" />
+        <div className="flex items-start gap-3.5 sm:gap-5">
+          <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-slate-800/80 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-700/60 shadow-2xs">
+            <Headphones className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <h3 className="text-[17px] sm:text-[18px] lg:text-[20px] font-semibold text-slate-900 dark:text-white leading-[1.25]">
+            <h3 className="text-[16px] sm:text-[18px] lg:text-[20px] font-semibold text-slate-900 dark:text-white leading-[1.25]">
               Need assistance drafting your requirements?
             </h3>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs sm:text-sm md:text-base text-slate-500 dark:text-slate-400 mt-1 sm:mt-0.5 leading-relaxed">
               Our technical solutions team is available for a direct 1-on-1 walkthrough to help articulate your software specifications.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3.5 shrink-0">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={onContactArchitect}
-              className="h-11 px-5 text-sm font-semibold text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:bg-[#151b2c] dark:hover:bg-slate-800 rounded-xl transition-all"
+              className="w-full sm:w-auto justify-center h-11 px-5 text-sm font-semibold text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:bg-[#151b2c] dark:hover:bg-slate-800 rounded-xl transition-all"
             >
-              <MessageSquare className="mr-2 h-4.5 w-4.5 text-slate-500 dark:text-slate-400" />
-              Ask A Question
+              <MessageSquare className="mr-2 h-4.5 w-4.5 text-slate-500 dark:text-slate-400 shrink-0" />
+              <span>Ask A Question</span>
             </Button>
           </motion.div>
 
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
             <Button
               size="sm"
               onClick={onScheduleReview}
-              className="h-11 px-5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs hover:shadow-md transition-all"
+              className="w-full sm:w-auto justify-center h-11 px-5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl shadow-xs hover:shadow-md transition-all"
             >
-              <Calendar className="mr-2 h-4.5 w-4.5" />
-              Schedule 15-min Review
+              <Calendar className="mr-2 h-4.5 w-4.5 shrink-0" />
+              <span>Schedule 15-min Review</span>
             </Button>
           </motion.div>
         </div>

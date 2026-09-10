@@ -31,6 +31,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
 
 const avatarMulterOptions = {
   storage: diskStorage({
@@ -73,8 +74,12 @@ export class AuthController {
   }
 
   @Post('login')
-  login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  login(@Body() loginDto: LoginDto, @Req() req: Request) {
+    const forwarded = req.headers['x-forwarded-for'];
+    const clientIp = typeof forwarded === 'string'
+      ? forwarded.split(',')[0].trim()
+      : (req.ip || req.socket.remoteAddress || '127.0.0.1');
+    return this.authService.login(loginDto, clientIp);
   }
 
   @Post('refresh')
@@ -132,6 +137,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   logoutAll(@Req() req: Request & { user: AuthUser }) {
     return this.authService.logoutAll(req.user.userId);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @Req() req: Request & { user: AuthUser },
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(req.user.userId, dto);
   }
 
   @Get('admin-test')

@@ -7,6 +7,8 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { MailModule } from '../mail/mail.module.js';
+import { AuthCleanupService } from './auth-cleanup.service.js';
+import { LoginThrottlerService } from './services/login-throttler.service.js';
 
 @Module({
   imports: [
@@ -25,12 +27,16 @@ import { MailModule } from '../mail/mail.module.js';
   providers: [
     AuthService,
     JwtStrategy,
+    AuthCleanupService,
+    LoginThrottlerService,
   ],
 
   exports: [
     PassportModule,
     JwtModule,
     JwtStrategy,
+    AuthCleanupService,
+    LoginThrottlerService,
   ],
 })
 export class AuthModule {}

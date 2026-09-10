@@ -193,12 +193,13 @@ model EstimateItemSubtask {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(CLIENT)
-  avatarUrl String?
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String?
+  role         Role     @default(CLIENT)
+  avatarUrl    String?
+  tokenVersion Int      @default(1)
 
   projects          Project[]
   sessions          RefreshSession[]
@@ -222,16 +223,19 @@ model RefreshSession {
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([revokedAt])
 }
 
 model PasswordResetOtp {
-  id         String    @id @default(cuid())
-  userId     String
-  otpHash    String
-  expiresAt  DateTime
-  attempts   Int       @default(0)
-  verifiedAt DateTime?
-  usedAt     DateTime?
+  id                  String    @id @default(cuid())
+  userId              String
+  otpHash             String
+  expiresAt           DateTime
+  attempts            Int       @default(0)
+  verifiedAt          DateTime?
+  usedAt              DateTime?
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -239,4 +243,5 @@ model PasswordResetOtp {
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([resetTokenExpiresAt])
 }

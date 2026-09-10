@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -13,12 +14,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto.js';
-import { randomUUID, randomInt } from 'node:crypto';
+import { randomUUID, randomInt, randomBytes } from 'node:crypto';
 import { MailService } from '../mail/mail.service.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
+import { LoginThrottlerService } from './services/login-throttler.service.js';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly OTP_EXPIRY_MINUTES = 10;
   private readonly OTP_RESEND_COOLDOWN_MINUTES = 2;
   private readonly MAX_OTP_SENDS = 3;
@@ -28,6 +32,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly throttlerService: LoginThrottlerService,
   ) {}
 
   async getMe(userId: string) {
@@ -173,27 +178,34 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, ip: string = '127.0.0.1') {
     const { email, password } = loginDto;
+
+    this.throttlerService.checkThrottle(ip, email);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
+      this.throttlerService.recordFailedAttempt(ip, email);
       throw new UnauthorizedException('Invalid email or password');
     }
 
     const passwordValid = await bcrypt.compare(password, user.password);
 
     if (!passwordValid) {
+      this.throttlerService.recordFailedAttempt(ip, email);
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    this.throttlerService.recordSuccess(ip, email);
 
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
 
     const accessTokenSecret = this.configService.get<string>(
@@ -219,6 +231,7 @@ export class AuthService {
       sub: user.id,
       sid: sessionId,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
 
     const refreshToken = await this.jwtService.signAsync(refreshTokenPayload, {
@@ -227,6 +240,17 @@ export class AuthService {
     });
 
     const refreshTokenHash = await bcrypt.hash(refreshToken, 12);
+
+    // Clean up obsolete refresh sessions for this user (revoked or expired) before creating a new one
+    await this.prisma.refreshSession.deleteMany({
+      where: {
+        userId: user.id,
+        OR: [
+          { revokedAt: { not: null } },
+          { expiresAt: { lt: new Date() } },
+        ],
+      },
+    });
 
     await this.prisma.refreshSession.create({
       data: {
@@ -262,6 +286,7 @@ export class AuthService {
         password: hashedPassword,
         name,
         role: 'CLIENT',
+        tokenVersion: 1,
       },
     });
 
@@ -315,6 +340,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    // Retain revoked status rather than hard-deleting immediately so replay attempts can be caught
     await this.prisma.refreshSession.update({
       where: {
         id: session.id,
@@ -329,15 +355,23 @@ export class AuthService {
     };
   }
   async logoutAll(userId: string) {
-    const result = await this.prisma.refreshSession.updateMany({
-      where: {
-        userId,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
-    });
+    const [, result] = await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          tokenVersion: { increment: 1 },
+        },
+      }),
+      this.prisma.refreshSession.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+    ]);
 
     return {
       message: 'Logged out from all devices',
@@ -361,6 +395,7 @@ export class AuthService {
       sub: string;
       sid: string;
       role?: string;
+      tokenVersion?: number;
     };
 
     try {
@@ -384,8 +419,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh session');
     }
 
+    // 1. REPLAY ATTACK DETECTION
+    // If an already-revoked refresh token is presented, terminate ALL sessions for this user!
     if (session.revokedAt) {
-      throw new UnauthorizedException('Refresh session has been revoked');
+      await this.prisma.refreshSession.updateMany({
+        where: { userId: session.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException(
+        'Refresh token has already been revoked. All active sessions terminated for security.',
+      );
     }
 
     if (session.expiresAt <= new Date()) {
@@ -398,7 +441,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // If role in DB changed since this refresh token was issued, revoke all sessions and force logout
+    // 2. TOKEN VERSION MISMATCH
+    if (
+      payload.tokenVersion !== undefined &&
+      session.user.tokenVersion !== payload.tokenVersion
+    ) {
+      await this.prisma.refreshSession.updateMany({
+        where: { userId: session.user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException(
+        'Session expired or invalidated. Please log in again.',
+      );
+    }
+
+    // 3. ROLE MISMATCH
     if (payload.role && session.user.role !== payload.role) {
       await this.prisma.refreshSession.updateMany({
         where: {
@@ -409,18 +466,10 @@ export class AuthService {
           revokedAt: new Date(),
         },
       });
-      throw new UnauthorizedException('User role has changed. Please log in again.');
+      throw new UnauthorizedException(
+        'User role has changed. Please log in again.',
+      );
     }
-
-    // Revoke old refresh token
-    await this.prisma.refreshSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
-    });
 
     // Create new session
     const newSessionId = randomUUID();
@@ -430,6 +479,7 @@ export class AuthService {
         sub: session.user.id,
         sid: newSessionId,
         role: session.user.role,
+        tokenVersion: session.user.tokenVersion,
       },
       {
         secret: refreshTokenSecret,
@@ -439,20 +489,28 @@ export class AuthService {
 
     const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 12);
 
-    await this.prisma.refreshSession.create({
-      data: {
-        id: newSessionId,
-        userId: session.user.id,
-        tokenHash: newRefreshTokenHash,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
+    // Rotate: revoke old session and create new one atomically
+    await this.prisma.$transaction([
+      this.prisma.refreshSession.update({
+        where: { id: session.id },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.refreshSession.create({
+        data: {
+          id: newSessionId,
+          userId: session.user.id,
+          tokenHash: newRefreshTokenHash,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      }),
+    ]);
 
     const newAccessToken = await this.jwtService.signAsync(
       {
         sub: session.user.id,
         email: session.user.email,
         role: session.user.role,
+        tokenVersion: session.user.tokenVersion,
       },
       {
         secret: accessTokenSecret,
@@ -536,17 +594,10 @@ export class AuthService {
       now.getTime() + this.OTP_EXPIRY_MINUTES * 60 * 1000,
     );
 
-    // Invalidate previous active OTPs.
-    await this.prisma.passwordResetOtp.updateMany({
+    // Clean up all obsolete and previous OTPs for this user before creating a new one
+    await this.prisma.passwordResetOtp.deleteMany({
       where: {
         userId: user.id,
-        usedAt: null,
-        expiresAt: {
-          gt: now,
-        },
-      },
-      data: {
-        usedAt: now,
       },
     });
 
@@ -578,6 +629,7 @@ export class AuthService {
     const resetOtp = await this.prisma.passwordResetOtp.findFirst({
       where: {
         userId: user.id,
+        verifiedAt: null,
         usedAt: null,
       },
       orderBy: {
@@ -586,16 +638,27 @@ export class AuthService {
     });
 
     if (!resetOtp) {
-      throw new UnauthorizedException('Invalid OTP');
+      throw new UnauthorizedException('Invalid or already used OTP');
     }
 
     const now = new Date();
 
     if (resetOtp.expiresAt <= now) {
+      await this.prisma.passwordResetOtp.deleteMany({
+        where: {
+          userId: user.id,
+          expiresAt: { lte: now },
+        },
+      });
       throw new UnauthorizedException('OTP has expired');
     }
 
     if (resetOtp.attempts >= 5) {
+      await this.prisma.passwordResetOtp.delete({
+        where: {
+          id: resetOtp.id,
+        },
+      });
       throw new UnauthorizedException(
         'Too many invalid attempts. Please request a new OTP.',
       );
@@ -606,28 +669,32 @@ export class AuthService {
     if (!otpMatches) {
       const newAttempts = resetOtp.attempts + 1;
 
+      if (newAttempts >= 5) {
+        await this.prisma.passwordResetOtp.delete({
+          where: {
+            id: resetOtp.id,
+          },
+        });
+        throw new UnauthorizedException(
+          'Too many invalid attempts. Please request a new OTP.',
+        );
+      }
+
       await this.prisma.passwordResetOtp.update({
         where: {
           id: resetOtp.id,
         },
         data: {
           attempts: newAttempts,
-          ...(newAttempts >= 5
-            ? {
-                usedAt: now,
-              }
-            : {}),
         },
       });
 
-      if (newAttempts >= 5) {
-        throw new UnauthorizedException(
-          'Too many invalid attempts. Please request a new OTP.',
-        );
-      }
-
       throw new UnauthorizedException('Invalid OTP');
     }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const resetTokenHash = await bcrypt.hash(resetToken, 10);
+    const resetTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await this.prisma.passwordResetOtp.update({
       where: {
@@ -635,15 +702,24 @@ export class AuthService {
       },
       data: {
         verifiedAt: now,
+        otpHash: 'INVALIDATED',
+        resetTokenHash,
+        resetTokenExpiresAt,
       },
     });
 
     return {
       message: 'OTP verified successfully',
+      resetToken,
     };
   }
+
   async resetPassword(dto: ResetPasswordDto) {
-    const { email, otp, newPassword } = dto;
+    const { email, resetToken, otp, newPassword } = dto;
+
+    if (!resetToken && !otp) {
+      throw new BadRequestException('Reset authorization token or OTP is required');
+    }
 
     const user = await this.prisma.user.findUnique({
       where: {
@@ -659,9 +735,6 @@ export class AuthService {
       where: {
         userId: user.id,
         usedAt: null,
-        verifiedAt: {
-          not: null,
-        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -669,17 +742,38 @@ export class AuthService {
     });
 
     if (!resetOtp) {
-      throw new UnauthorizedException('OTP verification required');
+      throw new UnauthorizedException('Invalid or expired reset authorization');
     }
 
-    if (resetOtp.expiresAt <= new Date()) {
-      throw new UnauthorizedException('OTP has expired');
+    const now = new Date();
+    let isAuthorized = false;
+
+    if (resetToken) {
+      if (!resetOtp.resetTokenHash || !resetOtp.resetTokenExpiresAt) {
+        throw new UnauthorizedException('Reset authorization not found or already consumed');
+      }
+      if (resetOtp.resetTokenExpiresAt <= now) {
+        await this.prisma.passwordResetOtp.delete({
+          where: { id: resetOtp.id },
+        });
+        throw new UnauthorizedException('Reset authorization has expired');
+      }
+      isAuthorized = await bcrypt.compare(resetToken, resetOtp.resetTokenHash);
+    } else if (otp) {
+      if (resetOtp.expiresAt <= now) {
+        await this.prisma.passwordResetOtp.delete({
+          where: { id: resetOtp.id },
+        });
+        throw new UnauthorizedException('OTP has expired');
+      }
+      if (!resetOtp.verifiedAt) {
+        throw new UnauthorizedException('OTP verification required');
+      }
+      isAuthorized = await bcrypt.compare(otp, resetOtp.otpHash);
     }
 
-    const otpMatches = await bcrypt.compare(otp, resetOtp.otpHash);
-
-    if (!otpMatches) {
-      throw new UnauthorizedException('Invalid OTP');
+    if (!isAuthorized) {
+      throw new UnauthorizedException('Invalid reset authorization');
     }
 
     const samePassword = await bcrypt.compare(newPassword, user.password);
@@ -699,15 +793,67 @@ export class AuthService {
         },
         data: {
           password: hashedPassword,
+          tokenVersion: { increment: 1 },
         },
       }),
 
-      this.prisma.passwordResetOtp.update({
+      this.prisma.passwordResetOtp.delete({
         where: {
           id: resetOtp.id,
         },
+      }),
+
+      // Revoke existing refresh sessions for this user on password reset
+      this.prisma.refreshSession.updateMany({
+        where: {
+          userId: user.id,
+          revokedAt: null,
+        },
         data: {
-          usedAt: new Date(),
+          revokedAt: now,
+        },
+      }),
+    ]);
+
+    return {
+      message: 'Password reset successfully',
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const { currentPassword, newPassword } = dto;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const passwordValid = await bcrypt.compare(currentPassword, user.password);
+
+    if (!passwordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const samePassword = await bcrypt.compare(newPassword, user.password);
+
+    if (samePassword) {
+      throw new BadRequestException(
+        'New password must be different from your current password',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const now = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          tokenVersion: { increment: 1 },
         },
       }),
 
@@ -717,13 +863,13 @@ export class AuthService {
           revokedAt: null,
         },
         data: {
-          revokedAt: new Date(),
+          revokedAt: now,
         },
       }),
     ]);
 
     return {
-      message: 'Password reset successfully',
+      message: 'Password changed successfully. Please log in again.',
     };
   }
 }

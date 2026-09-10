@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AdminCreateUserDto, AdminUpdateUserDto } from './dto/admin-user.dto.js';
 
 @Injectable()
 export class AdminService {
@@ -47,31 +48,31 @@ export class AdminService {
     });
   }
 
-  async createUser(data: any) {
+  async createUser(data: AdminCreateUserDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new ConflictException('Email already in use');
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(data.password, 12);
     return this.prisma.user.create({
       data: {
         email: data.email,
         name: data.name,
         password: hashedPassword,
         role: data.role,
+        tokenVersion: 1,
       },
       select: { id: true, email: true, name: true, role: true, createdAt: true },
     });
   }
 
-  async updateUser(id: string, data: any, currentUserId: string) {
+  async updateUser(id: string, data: AdminUpdateUserDto, currentUserId: string) {
     if (id === currentUserId) throw new BadRequestException('You cannot edit your own profile here');
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
 
-    const updateData: any = {
-      name: data.name,
-      role: data.role,
-    };
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.role !== undefined) updateData.role = data.role;
 
     if (data.email && data.email !== user.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
@@ -80,14 +81,27 @@ export class AdminService {
     }
 
     if (data.password) {
-      updateData.password = await bcrypt.hash(data.password, 10);
+      updateData.password = await bcrypt.hash(data.password, 12);
     }
 
-    if ((data.role && data.role !== user.role) || data.password) {
-      await this.prisma.refreshSession.updateMany({
-        where: { userId: id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
+    const isSecuritySensitiveChange = (data.role && data.role !== user.role) || Boolean(data.password);
+
+    if (isSecuritySensitiveChange) {
+      updateData.tokenVersion = { increment: 1 };
+
+      const [updatedUser] = await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id },
+          data: updateData,
+          select: { id: true, email: true, name: true, role: true, createdAt: true },
+        }),
+        this.prisma.refreshSession.updateMany({
+          where: { userId: id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        }),
+      ]);
+
+      return updatedUser;
     }
 
     return this.prisma.user.update({
@@ -102,7 +116,14 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
 
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.refreshSession.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.user.delete({ where: { id } }),
+    ]);
+
     return { success: true };
   }
 

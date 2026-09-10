@@ -112,8 +112,21 @@ async function executeRefreshToken(): Promise<string | null> {
     });
 
     if (!res.ok) {
+      let failureReason = 'Your session has expired. Please sign in again.';
+      try {
+        const errorData = await res.json();
+        const msg = String(errorData?.message || '').toLowerCase();
+        if (msg.includes('role') || msg.includes('permission')) {
+          failureReason = 'Your account permissions have changed. Please sign in again.';
+        }
+      } catch {
+        // default message
+      }
       clearTokens();
-      notifyAuthFailure('Your session has expired. Please sign in again.');
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('session_expired_reason', failureReason);
+      }
+      notifyAuthFailure(failureReason);
       return null;
     }
 
@@ -182,9 +195,28 @@ async function request(url: string, options: RequestInit, isRetry = false): Prom
       return handleResponse(response);
     }
 
-    if (isRetry) {
+    let originalErrorMsg = '';
+    try {
+      const cloned = response.clone();
+      const body = await cloned.json();
+      originalErrorMsg = body?.message || '';
+    } catch {
+      // ignore
+    }
+
+    const isRoleOrPermissionChange =
+      originalErrorMsg.toLowerCase().includes('role') ||
+      originalErrorMsg.toLowerCase().includes('permission');
+
+    if (isRetry || isRoleOrPermissionChange) {
+      const failureReason = isRoleOrPermissionChange
+        ? 'Your account permissions have changed. Please sign in again.'
+        : 'Your session has expired. Please sign in again.';
       clearTokens();
-      notifyAuthFailure('Your session has expired. Please sign in again.');
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('session_expired_reason', failureReason);
+      }
+      notifyAuthFailure(failureReason);
       return handleResponse(response);
     }
 
@@ -243,6 +275,28 @@ export const apiClient = {
     let response = await fetch(`${BASE_URL}${url}`, { ...options, headers });
 
     if (response.status === 401 && !isAuthExcludedUrl(url)) {
+      let originalErrorMsg = '';
+      try {
+        const cloned = response.clone();
+        const body = await cloned.json();
+        originalErrorMsg = body?.message || '';
+      } catch {
+        // ignore
+      }
+
+      if (
+        originalErrorMsg.toLowerCase().includes('role') ||
+        originalErrorMsg.toLowerCase().includes('permission')
+      ) {
+        const failureReason = 'Your account permissions have changed. Please sign in again.';
+        clearTokens();
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('session_expired_reason', failureReason);
+        }
+        notifyAuthFailure(failureReason);
+        throw new ApiError(401, failureReason);
+      }
+
       const newAccessToken = await requestTokenRefresh();
       if (newAccessToken) {
         headers.set('Authorization', `Bearer ${newAccessToken}`);

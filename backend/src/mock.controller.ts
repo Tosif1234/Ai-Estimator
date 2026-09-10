@@ -1,7 +1,13 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service.js';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from './auth/guards/roles.guard.js';
+import { Roles } from './auth/decorators/roles.decorator.js';
+import { Role } from '@prisma/client';
 
 @Controller('mock')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 export class MockController {
   constructor(private readonly prisma: PrismaService) {}
 

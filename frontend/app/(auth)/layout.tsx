@@ -3,42 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Brain, Layers, Key, Sun, Moon, Sparkles } from "lucide-react"
-import { useTheme } from "next-themes"
+import { Brain, Layers, Key, Sparkles } from "lucide-react"
 import { AuthTransitionWrapper } from "@/components/auth/AuthTransitionWrapper"
-
-function ThemeToggleButton() {
-  const { setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="w-9 h-9 rounded-full bg-white/80 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700/60 shadow-sm" />
-    )
-  }
-
-  const isDark = resolvedTheme === "dark"
-
-  return (
-    <button
-      type="button"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md border border-gray-200/80 dark:border-zinc-700/70 shadow-sm hover:shadow-md text-gray-600 dark:text-zinc-300 hover:text-gray-900 dark:hover:text-white transition-all duration-200 active:scale-95"
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      aria-label="Toggle theme"
-    >
-      {isDark ? (
-        <Sun className="h-4 w-4 text-amber-400 transition-transform group-hover:rotate-45" />
-      ) : (
-        <Moon className="h-4 w-4 text-indigo-500 transition-transform group-hover:-rotate-12" />
-      )}
-    </button>
-  )
-}
 
 export default function AuthLayout({
   children,
@@ -61,11 +27,6 @@ export default function AuthLayout({
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-indigo-500/10 dark:bg-blue-600/15 blur-3xl" />
         {/* Top-Left Accent Glow */}
         <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-sky-400/10 dark:bg-cyan-500/10 blur-3xl" />
-      </div>
-
-      {/* Floating Theme Toggle (Top-Right) */}
-      <div className="fixed top-4 right-4 sm:top-6 sm:right-8 z-50 flex items-center space-x-3">
-        <ThemeToggleButton />
       </div>
 
       {/* Main Glass/Card Container */}

@@ -16,7 +16,6 @@ import {
   ArrowUpDown, 
   ArrowUp, 
   ArrowDown,
-  ExternalLink,
   User as UserIcon
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -186,20 +185,20 @@ export default function AdminProjectsPage() {
 
       {/* Server-Side Search and Sorting Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search projects or clients..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-11 text-sm rounded-xl"
+            className="pl-10 h-11 text-sm rounded-xl w-full"
           />
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto">
           <span className="text-xs sm:text-[13px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Sort by:</span>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[160px] h-11 text-sm font-medium rounded-xl">
+            <SelectTrigger className="w-[150px] sm:w-[160px] h-11 text-sm font-medium rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -213,7 +212,7 @@ export default function AdminProjectsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-11 px-4 text-sm font-semibold rounded-xl flex items-center gap-2"
+            className="h-11 px-3.5 sm:px-4 text-sm font-semibold rounded-xl flex items-center gap-1.5"
             onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
             title={sortOrder === "asc" ? "Ascending order" : "Descending order"}
           >
@@ -223,46 +222,47 @@ export default function AdminProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Table */}
+      {/* Projects Table Card */}
       <Card className="rounded-2xl border-border/80 shadow-xs overflow-hidden bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs sm:text-[13px] uppercase bg-muted/40 text-muted-foreground border-b border-border/60">
+        {/* DESKTOP & TABLET TABLE VIEW (Hidden on Mobile) */}
+        <div className="hidden md:block w-full overflow-hidden">
+          <table className="w-full text-sm text-left table-fixed">
+            <thead className="text-xs uppercase bg-muted/40 text-muted-foreground border-b border-border/60">
               <tr>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[36%] px-5 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("name")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     Project Name
                     {renderSortIndicator("name")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[26%] px-4 py-3.5 font-semibold">
                   Client Owner
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[18%] px-4 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("status")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     Status
                     {renderSortIndicator("status")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold">
+                <th className="w-[12%] px-4 py-3.5 font-semibold">
                   <button
                     type="button"
                     onClick={() => handleSort("createdAt")}
-                    className="flex items-center group uppercase font-semibold text-xs sm:text-[13px] text-muted-foreground hover:text-foreground"
+                    className="flex items-center group uppercase font-semibold text-xs text-muted-foreground hover:text-foreground"
                   >
                     Created
                     {renderSortIndicator("createdAt")}
                   </button>
                 </th>
-                <th className="px-5 sm:px-6 py-4 font-semibold text-right">Actions</th>
+                <th className="w-[8%] px-5 py-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -282,33 +282,29 @@ export default function AdminProjectsPage() {
               ) : (
                 paginatedProjects.map((project) => (
                   <tr key={project.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-5 sm:px-6 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary mt-0.5 shrink-0">
-                          <FolderKanban className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary mt-0.5 shrink-0">
+                          <FolderKanban className="h-4 w-4" />
                         </div>
-                        <div className="min-w-0">
-                          <Link 
-                            href={`/client/projects/${project.id}`}
-                            className="font-semibold text-sm sm:text-[15px] text-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5"
-                          >
-                            <span className="truncate">{project.name}</span>
-                            <ExternalLink className="h-3.5 w-3.5 opacity-50 shrink-0" />
-                          </Link>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-semibold text-sm sm:text-[15px] text-foreground block truncate" title={project.name}>
+                            {project.name}
+                          </span>
                           {project.description && (
-                            <p className="text-xs sm:text-[13px] text-muted-foreground line-clamp-1 max-w-sm mt-0.5">
+                            <p className="text-xs text-muted-foreground truncate max-w-sm mt-0.5">
                               {project.description}
                             </p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 sm:px-6 py-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0 text-xs font-semibold">
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0 text-xs font-semibold">
                           {(project.user?.name || project.user?.email || "U")[0].toUpperCase()}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm text-foreground truncate">
                             {project.user?.name || "Unnamed Client"}
                           </p>
@@ -318,12 +314,12 @@ export default function AdminProjectsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 sm:px-6 py-4">
+                    <td className="px-4 py-3.5">
                       <StatusBadge status={project.status || "DRAFT"} />
                     </td>
-                    <td className="px-5 sm:px-6 py-4 text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                    <td className="px-4 py-3.5 text-xs text-muted-foreground truncate">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 opacity-60" />
+                        <Clock className="h-3.5 w-3.5 opacity-60 shrink-0" />
                         <span>
                           {project.createdAt 
                             ? new Date(project.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -331,22 +327,11 @@ export default function AdminProjectsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 sm:px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="h-9 px-3.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl"
-                        >
-                          <Link href={`/client/projects/${project.id}`}>
-                            View
-                          </Link>
-                        </Button>
-
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" aria-label="Project actions">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -370,6 +355,80 @@ export default function AdminProjectsPage() {
           </table>
         </div>
 
+        {/* MOBILE CARD LIST VIEW (< 768px) */}
+        <div className="block md:hidden divide-y divide-border">
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
+              <span>Loading projects...</span>
+            </div>
+          ) : projects?.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              {debouncedSearch.trim() ? "No projects match your search query." : "No projects created yet."}
+            </div>
+          ) : (
+            paginatedProjects.map((project) => (
+              <div key={project.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
+                      <FolderKanban className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-[15px] text-foreground leading-snug break-words">
+                        {project.name}
+                      </p>
+                      {project.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                          {project.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl shrink-0" aria-label="Project actions">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditOpen(project)}>
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Edit Project
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteProject(project)} className="text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40 gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0 text-[10px] font-semibold">
+                      {(project.user?.name || project.user?.email || "U")[0].toUpperCase()}
+                    </div>
+                    <span className="text-muted-foreground truncate max-w-[140px]">
+                      {project.user?.name || project.user?.email || "Unnamed Client"}
+                    </span>
+                  </div>
+                  <StatusBadge status={project.status || "DRAFT"} />
+                </div>
+
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground pt-0.5">
+                  <Clock className="h-3 w-3 opacity-60 shrink-0" />
+                  <span>
+                    Created: {project.createdAt 
+                      ? new Date(project.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
         {/* Integrated Pagination Controls */}
         <AdminPagination
           currentPage={currentPage}
@@ -381,7 +440,7 @@ export default function AdminProjectsPage() {
       </Card>
 
       <Dialog open={!!editingProject} onOpenChange={(open: boolean) => !open && setEditingProject(null)}>
-        <DialogContent className="p-6 rounded-2xl">
+        <DialogContent className="p-5 sm:p-6 rounded-2xl w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl font-semibold">Edit Project</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">Modify the project details below.</DialogDescription>

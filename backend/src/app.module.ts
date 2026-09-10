@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { createObserveModule } from '@nestjs/observe';
 
 import { AppController } from './app.controller.js';
@@ -24,6 +25,7 @@ import { MockController } from './mock.controller.js';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
 
     // ObserveModule.forRoot({
     //   appKey: 'YOUR_APP_KEY',

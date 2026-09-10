@@ -76,8 +76,40 @@ export function AdminPagination({
         <span className="font-semibold text-foreground">{totalItems}</span> {itemName}
       </p>
 
-      {/* Navigation Controls */}
-      <div className="flex items-center justify-center gap-1 sm:gap-1.5">
+      {/* Mobile Navigation Controls (< sm) */}
+      <div className="flex sm:hidden items-center justify-between w-full gap-2 pt-2 border-t border-border/40">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage <= 1}
+          className="h-9 px-3 text-xs font-medium rounded-lg border-border/80 hover:bg-muted/60 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Prev
+        </Button>
+
+        <span className="text-xs font-medium text-muted-foreground">
+          Page <span className="font-semibold text-foreground">{currentPage}</span> of{" "}
+          <span className="font-semibold text-foreground">{totalPages}</span>
+        </span>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage >= totalPages}
+          className="h-9 px-3 text-xs font-medium rounded-lg border-border/80 hover:bg-muted/60 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          aria-label="Next page"
+        >
+          Next
+          <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
+
+      {/* Desktop Navigation Controls (>= sm) */}
+      <div className="hidden sm:flex items-center justify-center gap-1.5">
         {/* Previous Button */}
         <Button
           variant="outline"
@@ -88,7 +120,7 @@ export function AdminPagination({
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4 sm:mr-1" />
-          <span className="hidden sm:inline">Previous</span>
+          <span>Previous</span>
         </Button>
 
         {/* Page Number Buttons */}
@@ -135,7 +167,7 @@ export function AdminPagination({
           className="h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl border-border/80 hover:bg-muted/60 disabled:opacity-40 disabled:pointer-events-none transition-colors"
           aria-label="Next page"
         >
-          <span className="hidden sm:inline">Next</span>
+          <span>Next</span>
           <ChevronRight className="h-4 w-4 sm:ml-1" />
         </Button>
       </div>

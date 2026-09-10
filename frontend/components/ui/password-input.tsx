@@ -36,15 +36,17 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
             setShowPassword(true)
           }}
           onTouchEnd={() => setShowPassword(false)}
+          onTouchCancel={() => setShowPassword(false)}
+          onContextMenu={(e) => e.preventDefault()}
           tabIndex={-1}
         >
           {showPassword ? (
-            <EyeOff className="h-4 w-4" aria-hidden="true" />
-          ) : (
             <Eye className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <EyeOff className="h-4 w-4" aria-hidden="true" />
           )}
           <span className="sr-only">
-            {showPassword ? "Hide password" : "Show password"}
+            {showPassword ? "Hide password" : "Show password (hold to reveal)"}
           </span>
         </Button>
       </div>

@@ -3,6 +3,7 @@ import { AdminService } from './admin.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { AdminCreateUserDto, AdminUpdateUserDto } from './dto/admin-user.dto.js';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -20,14 +21,14 @@ export class AdminController {
   }
 
   @Post('users')
-  createUser(@Body() body: any) {
-    return this.adminService.createUser(body);
+  createUser(@Body() dto: AdminCreateUserDto) {
+    return this.adminService.createUser(dto);
   }
 
   @Put('users/:id')
-  updateUser(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  updateUser(@Param('id') id: string, @Body() dto: AdminUpdateUserDto, @Req() req: any) {
     const currentUserId = req.user?.id || req.user?.userId;
-    return this.adminService.updateUser(id, body, currentUserId);
+    return this.adminService.updateUser(id, dto, currentUserId);
   }
 
   @Delete('users/:id')

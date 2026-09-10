@@ -133,46 +133,109 @@
 }
 
 /* ==========================================================================
-   SweetAlert2 Custom Styling & Button Color Fixes
+   SweetAlert2 Custom Styling & Full Theme Compatibility (Light & Dark)
    ========================================================================== */
-.swal2-popup.swal2-modal-popup,
-.swal2-popup.swal2-modal-theme {
-  border-radius: 0.5rem !important;
-  padding: 1.5rem !important;
+
+/* 1. Toast Notifications */
+.swal2-popup.swal2-toast-theme {
+  border-radius: 1rem !important;
+  padding: 0.875rem 1.25rem !important;
+  font-family: inherit !important;
   background: #ffffff !important;
   color: #0f172a !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+}
+
+.dark .swal2-popup.swal2-toast-theme,
+[data-theme="dark"] .swal2-popup.swal2-toast-theme,
+.swal2-popup.swal2-toast-theme.swal2-dark-mode {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #1e293b !important;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.6) !important;
+}
+
+.swal2-toast-title {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+.dark .swal2-toast-title,
+[data-theme="dark"] .swal2-toast-title,
+.swal2-dark-mode .swal2-toast-title {
+  color: #f8fafc !important;
+}
+
+.swal2-toast-body {
+  font-size: 0.8125rem !important;
+  line-height: 1.4 !important;
+  color: #64748b !important;
+  margin-top: 0.25rem !important;
+}
+
+.dark .swal2-toast-body,
+[data-theme="dark"] .swal2-toast-body,
+.swal2-dark-mode .swal2-toast-body {
+  color: #94a3b8 !important;
+}
+
+.swal2-toast-progress {
+  height: 3px !important;
+  background: var(--color-indigo-600, #4f46e5) !important;
+}
+
+/* 2. Modal Alerts & Dialogs */
+.swal2-popup.swal2-modal-popup,
+.swal2-popup.swal2-modal-theme {
+  border-radius: 1rem !important;
+  padding: 1.75rem 2rem !important;
+  font-family: inherit !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid #e2e8f0 !important;
 }
 
 .dark .swal2-popup.swal2-modal-popup,
-.dark .swal2-popup.swal2-modal-theme {
-  background: #18181b !important;
-  color: #fafafa !important;
-  border-color: #27272a !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+[data-theme="dark"] .swal2-popup.swal2-modal-popup,
+.dark .swal2-popup.swal2-modal-theme,
+[data-theme="dark"] .swal2-popup.swal2-modal-theme,
+.swal2-popup.swal2-modal-popup.swal2-dark-mode {
+  background: #0e1322 !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7) !important;
 }
 
 .swal2-modal-title {
-  font-size: 1.125rem !important;
-  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
   color: #0f172a !important;
   margin-bottom: 0.5rem !important;
 }
 
-.dark .swal2-modal-title {
-  color: #fafafa !important;
+.dark .swal2-modal-title,
+[data-theme="dark"] .swal2-modal-title,
+.swal2-dark-mode .swal2-modal-title {
+  color: #f8fafc !important;
 }
 
 .swal2-modal-body {
-  font-size: 0.875rem !important;
+  font-size: 0.9375rem !important;
   color: #64748b !important;
-  line-height: 1.5 !important;
-  margin: 0.5rem 0 1rem 0 !important;
+  line-height: 1.55 !important;
+  margin: 0.5rem 0 1.25rem 0 !important;
 }
 
-.dark .swal2-modal-body {
-  color: #a1a1aa !important;
+.dark .swal2-modal-body,
+[data-theme="dark"] .swal2-modal-body,
+.swal2-dark-mode .swal2-modal-body {
+  color: #94a3b8 !important;
 }
 
 /* Modal Actions and Buttons */
@@ -180,9 +243,10 @@
 .swal2-actions {
   display: flex !important;
   align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 0.5rem !important;
-  margin-top: 1.25rem !important;
+  justify-content: center !important;
+  gap: 0.875rem !important;
+  margin: 1.75rem auto 0.25rem auto !important;
+  padding: 0 !important;
   width: 100% !important;
 }
 
@@ -193,20 +257,24 @@
   justify-content: center !important;
   background-color: #ef4444 !important;
   color: #ffffff !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   font-size: 0.875rem !important;
-  padding: 0.5rem 1rem !important;
-  border-radius: 0.375rem !important;
+  height: 2.625rem !important;
+  padding: 0.5rem 1.375rem !important;
+  min-width: 115px !important;
+  border-radius: 0.75rem !important;
   border: 1px solid transparent !important;
   cursor: pointer !important;
-  transition: background-color 0.15s ease-in-out !important;
+  transition: all 0.15s ease-in-out !important;
   text-decoration: none !important;
+  box-shadow: 0 1px 3px 0 rgba(239, 68, 68, 0.2) !important;
 }
 
 .swal2-btn-destructive:hover,
 .swal2-actions .swal2-btn-destructive:hover {
   background-color: #dc2626 !important;
   color: #ffffff !important;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3) !important;
 }
 
 .swal2-btn-primary,
@@ -214,22 +282,26 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: var(--color-indigo-600, #4f46e5) !important;
+  background-color: #4f46e5 !important;
   color: #ffffff !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   font-size: 0.875rem !important;
-  padding: 0.5rem 1rem !important;
-  border-radius: 0.375rem !important;
+  height: 2.625rem !important;
+  padding: 0.5rem 1.375rem !important;
+  min-width: 115px !important;
+  border-radius: 0.75rem !important;
   border: 1px solid transparent !important;
   cursor: pointer !important;
-  transition: background-color 0.15s ease-in-out !important;
+  transition: all 0.15s ease-in-out !important;
   text-decoration: none !important;
+  box-shadow: 0 1px 3px 0 rgba(79, 70, 229, 0.2) !important;
 }
 
 .swal2-btn-primary:hover,
 .swal2-actions .swal2-btn-primary:hover {
-  background-color: var(--color-indigo-700, #4338ca) !important;
+  background-color: #4338ca !important;
   color: #ffffff !important;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3) !important;
 }
 
 .swal2-btn-cancel,
@@ -239,13 +311,15 @@
   justify-content: center !important;
   background-color: #f1f5f9 !important;
   color: #334155 !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   font-size: 0.875rem !important;
-  padding: 0.5rem 1rem !important;
-  border-radius: 0.375rem !important;
+  height: 2.625rem !important;
+  padding: 0.5rem 1.375rem !important;
+  min-width: 100px !important;
+  border-radius: 0.75rem !important;
   border: 1px solid #cbd5e1 !important;
   cursor: pointer !important;
-  transition: background-color 0.15s ease-in-out !important;
+  transition: all 0.15s ease-in-out !important;
   text-decoration: none !important;
 }
 
@@ -253,19 +327,53 @@
 .swal2-actions .swal2-btn-cancel:hover {
   background-color: #e2e8f0 !important;
   color: #0f172a !important;
+  border-color: #94a3b8 !important;
 }
 
 .dark .swal2-btn-cancel,
-.dark .swal2-actions .swal2-btn-cancel {
-  background-color: #27272a !important;
-  color: #e4e4e7 !important;
-  border-color: #3f3f46 !important;
+[data-theme="dark"] .swal2-btn-cancel,
+.dark .swal2-actions .swal2-btn-cancel,
+[data-theme="dark"] .swal2-actions .swal2-btn-cancel,
+.swal2-dark-mode .swal2-btn-cancel {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #334155 !important;
 }
 
 .dark .swal2-btn-cancel:hover,
-.dark .swal2-actions .swal2-btn-cancel:hover {
-  background-color: #3f3f46 !important;
+[data-theme="dark"] .swal2-btn-cancel:hover,
+.dark .swal2-actions .swal2-btn-cancel:hover,
+[data-theme="dark"] .swal2-actions .swal2-btn-cancel:hover,
+.swal2-dark-mode .swal2-btn-cancel:hover {
+  background-color: #334155 !important;
   color: #ffffff !important;
+  border-color: #475569 !important;
+}
+
+@media (max-width: 480px) {
+  .swal2-actions.swal2-modal-actions,
+  .swal2-actions {
+    gap: 0.625rem !important;
+  }
+  .swal2-actions .swal2-btn-destructive,
+  .swal2-actions .swal2-btn-primary,
+  .swal2-actions .swal2-btn-cancel {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+}
+
+/* 3. Dark Mode Fix for Animated Success Checkmark */
+.dark .swal2-icon.swal2-success .swal2-success-circular-line-left,
+.dark .swal2-icon.swal2-success .swal2-success-circular-line-right,
+.dark .swal2-icon.swal2-success .swal2-success-fix,
+[data-theme="dark"] .swal2-icon.swal2-success .swal2-success-circular-line-left,
+[data-theme="dark"] .swal2-icon.swal2-success .swal2-success-circular-line-right,
+[data-theme="dark"] .swal2-icon.swal2-success .swal2-success-fix,
+.swal2-dark-mode .swal2-icon.swal2-success .swal2-success-circular-line-left,
+.swal2-dark-mode .swal2-icon.swal2-success .swal2-success-circular-line-right,
+.swal2-dark-mode .swal2-icon.swal2-success .swal2-success-fix {
+  background-color: transparent !important;
 }
 
 /* ==========================================================================
