@@ -13,6 +13,9 @@ export class MailService {
   constructor() {
     const email = process.env.SMTP_EMAIL;
     const password = process.env.SMTP_PASS;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const port = Number(process.env.SMTP_PORT) || 2525;
+    const secure = port === 465;
 
     if (!email || !password) {
       throw new Error(
@@ -21,10 +24,15 @@ export class MailService {
     }
 
     this.transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host,
+      port,
+      secure,
       auth: {
         user: email,
         pass: password,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }

@@ -168,7 +168,7 @@ describe('Production Security Audit & Hardening Test Suite', () => {
         tokenVersion: 1,
       };
 
-      mockPrisma.user.findUnique.mockImplementation(async ({ where }) => {
+      mockPrisma.user.findUnique.mockImplementation(async ({ where }: { where: { email: string } }) => {
         if (where.email === 'user@example.com') return storedUser;
         return null;
       });
@@ -189,7 +189,7 @@ describe('Production Security Audit & Hardening Test Suite', () => {
     it('should normalize email to lowercase and trim on registration and store lowercase in DB', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.findFirst.mockResolvedValue(null);
-      mockPrisma.user.create.mockImplementation(async ({ data }) => ({
+      mockPrisma.user.create.mockImplementation(async ({ data }: { data: any }) => ({
         id: 'new-user-1',
         email: data.email,
         name: data.name,
