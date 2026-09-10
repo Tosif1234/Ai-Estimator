@@ -1,54 +1,57 @@
 import {
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
-import nodemailer, {
-  Transporter,
-} from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
-  private readonly transporter: Transporter;
+  private readonly logger = new Logger(MailService.name);
+  private resendClient: Resend | null = null;
 
   constructor() {
-    const email = process.env.SMTP_EMAIL;
-    const password = process.env.SMTP_PASS;
-    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const port = Number(process.env.SMTP_PORT) || 2525;
-    const secure = port === 465;
-
-    if (!email || !password) {
-      throw new Error(
-        'SMTP_EMAIL and SMTP_PASSWORD are not configured',
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      this.resendClient = new Resend(apiKey);
+    } else {
+      this.logger.warn(
+        'RESEND_API_KEY is not configured in environment variables. Forgot password OTP delivery via HTTPS will fail until RESEND_API_KEY is set.',
       );
     }
+  }
 
-    this.transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: {
-        user: email,
-        pass: password,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+  private getClient(): Resend {
+    if (!this.resendClient) {
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        this.logger.error('Email delivery failed: RESEND_API_KEY is missing');
+        throw new InternalServerErrorException(
+          'Unable to send email. Please try again later.',
+        );
+      }
+      this.resendClient = new Resend(apiKey);
+    }
+    return this.resendClient;
+  }
+
+  private getFromAddress(): string {
+    return process.env.EMAIL_FROM || 'AI Estimator <onboarding@resend.dev>';
   }
 
   async sendPasswordResetOtp(
     email: string,
     otp: string,
   ): Promise<void> {
+    const resend = this.getClient();
+    const from = this.getFromAddress();
+
     try {
-      await this.transporter.sendMail({
-        from: `"AI Estimator" <${process.env.SMTP_EMAIL}>`,
+      const { error } = await resend.emails.send({
+        from,
         to: email,
         subject: 'AI Estimator - Password Reset OTP',
-
         text: `Your AI Estimator password reset OTP is ${otp}. This OTP expires in 10 minutes.`,
-
         html: `
           <div style="
             font-family: Arial, sans-serif;
@@ -87,8 +90,23 @@ export class MailService {
           </div>
         `,
       });
+
+      if (error) {
+        this.logger.error(
+          `Resend email delivery failed: ${error.name || 'Error'} - ${error.message || 'Unknown error'}`,
+        );
+        throw new InternalServerErrorException(
+          'Unable to send email. Please try again later.',
+        );
+      }
     } catch (error) {
-      console.error('SMTP EMAIL ERROR:', error);
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Unexpected error during email delivery: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
 
       throw new InternalServerErrorException(
         'Unable to send email. Please try again later.',
