@@ -12,8 +12,13 @@ import { apiClient } from "@/lib/api/apiClient"
 import { swalToast } from "@/lib/swal"
 
 const signupSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters long."),
-  email: z.string().email("Please enter a valid email address."),
+  name: z.string().trim().min(2, "Name must be at least 2 characters long."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required.")
+    .email("Please enter a valid email address.")
+    .transform((val) => val.toLowerCase()),
   password: z.string()
     .min(8, "Least 8 characters")
     .regex(/[a-z]/, "Lowercase (a-z)")
@@ -48,15 +53,16 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setError(null)
+    const normalizedEmail = data.email.trim().toLowerCase()
     try {
       await apiClient.post("/auth/register", {
-        name: data.name,
-        email: data.email,
+        name: data.name.trim(),
+        email: normalizedEmail,
         password: data.password,
       })
 
       const loginResponse = await apiClient.post("/auth/login", {
-        email: data.email,
+        email: normalizedEmail,
         password: data.password,
       }) as { accessToken: string; refreshToken: string }
 

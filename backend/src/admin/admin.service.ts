@@ -49,14 +49,17 @@ export class AdminService {
   }
 
   async createUser(data: AdminCreateUserDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+    const email = data.email?.trim().toLowerCase();
+    const existing = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     if (existing) throw new ConflictException('Email already in use');
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
     return this.prisma.user.create({
       data: {
-        email: data.email,
-        name: data.name,
+        email,
+        name: typeof data.name === 'string' ? data.name.trim() : data.name,
         password: hashedPassword,
         role: data.role,
         tokenVersion: 1,
@@ -71,13 +74,21 @@ export class AdminService {
     if (!user) throw new NotFoundException('User not found');
 
     const updateData: any = {};
-    if (data.name !== undefined) updateData.name = data.name;
+    if (data.name !== undefined) updateData.name = typeof data.name === 'string' ? data.name.trim() : data.name;
     if (data.role !== undefined) updateData.role = data.role;
 
-    if (data.email && data.email !== user.email) {
-      const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
-      if (existing) throw new ConflictException('Email already in use');
-      updateData.email = data.email;
+    if (data.email) {
+      const email = data.email.trim().toLowerCase();
+      if (email !== user.email.toLowerCase()) {
+        const existing = await this.prisma.user.findFirst({
+          where: {
+            email: { equals: email, mode: 'insensitive' },
+            NOT: { id },
+          },
+        });
+        if (existing) throw new ConflictException('Email already in use');
+        updateData.email = email;
+      }
     }
 
     if (data.password) {

@@ -11,7 +11,12 @@ import { authApi } from "@/lib/api/authApi"
 import { swalToast } from "@/lib/swal"
 
 const emailSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required.")
+    .email("Please enter a valid email address.")
+    .transform((val) => val.toLowerCase()),
 })
 
 const otpSchema = z.object({
@@ -61,9 +66,10 @@ export default function ForgotPasswordPage() {
 
   const onEmailSubmit = async (data: EmailFormValues) => {
     setError(null)
+    const normalizedEmail = data.email.trim().toLowerCase()
     try {
-      await authApi.forgotPassword(data.email)
-      setEmail(data.email)
+      await authApi.forgotPassword(normalizedEmail)
+      setEmail(normalizedEmail)
       setStep(1)
       setResendCooldown(120)
       swalToast.success("Verification code sent to your email.")
@@ -77,8 +83,9 @@ export default function ForgotPasswordPage() {
   const handleResendOtp = async () => {
     if (resendCooldown > 0) return
     setError(null)
+    const normalizedEmail = email.trim().toLowerCase()
     try {
-      const response = await authApi.forgotPassword(email) as { retryAfterSeconds?: number }
+      const response = await authApi.forgotPassword(normalizedEmail) as { retryAfterSeconds?: number }
       if (response && response.retryAfterSeconds) {
         setResendCooldown(response.retryAfterSeconds)
       } else {
@@ -94,12 +101,13 @@ export default function ForgotPasswordPage() {
 
   const onOtpSubmit = async (data: OtpFormValues) => {
     setError(null)
+    const normalizedEmail = email.trim().toLowerCase()
     try {
-      const res = await authApi.verifyResetOtp({ email, otp: data.otp }) as { resetToken?: string }
+      const res = await authApi.verifyResetOtp({ email: normalizedEmail, otp: data.otp.trim() }) as { resetToken?: string }
       if (res && res.resetToken) {
         setResetToken(res.resetToken)
       }
-      setOtp(data.otp)
+      setOtp(data.otp.trim())
       setStep(2)
       swalToast.success("Code verified successfully.")
     } catch (err: unknown) {
@@ -111,8 +119,9 @@ export default function ForgotPasswordPage() {
 
   const onPasswordSubmit = async (data: PasswordFormValues) => {
     setError(null)
+    const normalizedEmail = email.trim().toLowerCase()
     try {
-      await authApi.resetPassword({ email, resetToken, otp, newPassword: data.newPassword })
+      await authApi.resetPassword({ email: normalizedEmail, resetToken, otp, newPassword: data.newPassword })
       setEmail("")
       setOtp("")
       setResetToken("")

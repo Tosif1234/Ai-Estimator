@@ -1,9 +1,11 @@
 import { Role } from '@prisma/client';
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class AdminCreateUserDto {
-  @IsEmail()
-  @IsNotEmpty()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @IsNotEmpty({ message: 'Email is required' })
   @MaxLength(100)
   email: string;
 
@@ -24,7 +26,8 @@ export class AdminCreateUserDto {
 
 export class AdminUpdateUserDto {
   @IsOptional()
-  @IsEmail()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  @IsEmail({}, { message: 'Please provide a valid email address' })
   @MaxLength(100)
   email?: string;
 

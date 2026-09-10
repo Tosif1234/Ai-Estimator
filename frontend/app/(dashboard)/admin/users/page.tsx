@@ -104,13 +104,22 @@ export default function AdminUsersPage() {
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    createMutation.mutate(formData as Record<string, unknown>)
+    const payload = {
+      ...formData,
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+    }
+    createMutation.mutate(payload as Record<string, unknown>)
   }
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingUser) return
-    const payload: Record<string, unknown> = { name: formData.name, email: formData.email, role: formData.role }
+    const payload: Record<string, unknown> = {
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      role: formData.role,
+    }
     if (formData.password) payload.password = formData.password
     updateMutation.mutate({ id: editingUser.id, data: payload })
   }

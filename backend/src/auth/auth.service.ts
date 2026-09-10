@@ -180,13 +180,27 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto, ip: string = '127.0.0.1') {
-    const { email, password } = loginDto;
+    const rawEmail = loginDto.email;
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    const { password } = loginDto;
 
     this.throttlerService.checkThrottle(ip, email);
 
-    const user = await this.prisma.user.findUnique({
+    let user = await this.prisma.user.findUnique({
       where: { email },
     });
+
+    if (!user && email && typeof this.prisma.user.findFirst === 'function') {
+      user = await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
+      if (user && user.email !== email && typeof this.prisma.user.update === 'function') {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { email },
+        });
+      }
+    }
 
     if (!user) {
       this.throttlerService.recordFailedAttempt(ip, email);
@@ -269,11 +283,19 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const { email, password, name } = registerDto;
+    const rawEmail = registerDto.email;
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    const { password, name } = registerDto;
 
-    const existingUser = await this.prisma.user.findUnique({
+    let existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
+
+    if (!existingUser && email && typeof this.prisma.user.findFirst === 'function') {
+      existingUser = await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
+    }
 
     if (existingUser) {
       throw new ConflictException('Email already registered');
@@ -285,7 +307,7 @@ export class AuthService {
       data: {
         email,
         password: hashedPassword,
-        name,
+        name: typeof name === 'string' ? name.trim() : name,
         role: 'CLIENT',
         tokenVersion: 1,
       },
@@ -524,12 +546,25 @@ export class AuthService {
       refreshToken: newRefreshToken,
     };
   }
-  async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({
+  async forgotPassword(rawEmail: string) {
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    let user = await this.prisma.user.findUnique({
       where: {
         email,
       },
     });
+
+    if (!user && email && typeof this.prisma.user.findFirst === 'function') {
+      user = await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
+      if (user && user.email !== email && typeof this.prisma.user.update === 'function') {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { email },
+        });
+      }
+    }
 
     // Do not reveal whether the email exists.
     if (!user) {
@@ -616,12 +651,19 @@ export class AuthService {
       message: 'If the email exists, a reset OTP has been sent.',
     };
   }
-  async verifyResetOtp(email: string, otp: string) {
-    const user = await this.prisma.user.findUnique({
+  async verifyResetOtp(rawEmail: string, otp: string) {
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    let user = await this.prisma.user.findUnique({
       where: {
         email,
       },
     });
+
+    if (!user && email && typeof this.prisma.user.findFirst === 'function') {
+      user = await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
+    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid OTP');
@@ -716,17 +758,31 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const { email, resetToken, otp, newPassword } = dto;
+    const rawEmail = dto.email;
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    const { resetToken, otp, newPassword } = dto;
 
     if (!resetToken && !otp) {
       throw new BadRequestException('Reset authorization token or OTP is required');
     }
 
-    const user = await this.prisma.user.findUnique({
+    let user = await this.prisma.user.findUnique({
       where: {
         email,
       },
     });
+
+    if (!user && email && typeof this.prisma.user.findFirst === 'function') {
+      user = await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
+      if (user && user.email !== email && typeof this.prisma.user.update === 'function') {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { email },
+        });
+      }
+    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid reset request');

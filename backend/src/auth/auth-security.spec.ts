@@ -22,6 +22,7 @@ describe('Production Security Audit & Hardening Test Suite', () => {
     mockPrisma = {
       user: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
@@ -156,6 +157,61 @@ describe('Production Security Audit & Hardening Test Suite', () => {
       ).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
 
       expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should normalize email to lowercase and trim on login', async () => {
+      const storedUser = {
+        id: 'user-norm-1',
+        email: 'user@example.com',
+        password: await bcrypt.hash('Secret123!', 12),
+        role: Role.CLIENT,
+        tokenVersion: 1,
+      };
+
+      mockPrisma.user.findUnique.mockImplementation(async ({ where }) => {
+        if (where.email === 'user@example.com') return storedUser;
+        return null;
+      });
+
+      // Pass uppercase with leading/trailing spaces
+      const result = await authService.login({
+        email: '  USER@EXAMPLE.COM  ',
+        password: 'Secret123!',
+      });
+
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'user@example.com' },
+      });
+    });
+
+    it('should normalize email to lowercase and trim on registration and store lowercase in DB', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.user.create.mockImplementation(async ({ data }) => ({
+        id: 'new-user-1',
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        createdAt: new Date(),
+      }));
+
+      const res = await authService.register({
+        email: '  NEWUSER@EXAMPLE.COM ',
+        password: 'Password123!',
+        name: ' Test User ',
+      });
+
+      expect(res.email).toBe('newuser@example.com');
+      expect(mockPrisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'newuser@example.com',
+            name: 'Test User',
+          }),
+        }),
+      );
     });
   });
 

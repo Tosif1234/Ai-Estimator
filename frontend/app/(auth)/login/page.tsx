@@ -12,7 +12,12 @@ import { apiClient } from "@/lib/api/apiClient"
 import { swalToast } from "@/lib/swal"
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address."),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required.")
+    .email("Please enter a valid email address.")
+    .transform((val) => val.toLowerCase()),
   password: z.string().min(1, "Password is required."),
 })
 
@@ -58,8 +63,12 @@ export default function LoginPage() {
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("session_expired_reason")
     }
+    const normalizedData = {
+      ...data,
+      email: data.email.trim().toLowerCase(),
+    }
     try {
-      const response = await apiClient.post("/auth/login", data) as {
+      const response = await apiClient.post("/auth/login", normalizedData) as {
         accessToken: string
         refreshToken: string
       }
